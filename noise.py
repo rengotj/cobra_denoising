@@ -23,7 +23,12 @@ class noisyImage :
         self.Ilist = [None for i in range(self.method_nb)] #List of all available noisy images
         
         self.name = path+file_name
-        self.Ioriginal = cv2.imread(self.name, 0)
+        original = cv2.imread(self.name, 0)
+        if (np.max(original)!=np.min(original)):
+            self.Ioriginal = (original-np.min(original))/(np.max(original)-np.min(original))
+        else:
+            self.Ioriginal = original
+            
         self.shape = (self.Ioriginal).shape
         self.size = (self.Ioriginal).size
     
@@ -48,7 +53,8 @@ class noisyImage :
         """ Add gaussian noise to the original image """
         I_gauss = np.random.normal(self.mu, self.sigma, self.shape)
         I_gauss = self.Ioriginal+I_gauss
-        I_gauss = (I_gauss-np.min(I_gauss))/(np.max(I_gauss)-np.min(I_gauss))
+        if (np.max(I_gauss)!=np.min(I_gauss)):
+            I_gauss = (I_gauss-np.min(I_gauss))/(np.max(I_gauss)-np.min(I_gauss))
         self.Igauss = I_gauss
         self.Ilist[0] = I_gauss
         return()
@@ -64,6 +70,9 @@ class noisyImage :
         num_pepper = np.ceil(self.amount* self.size * (1. - self.s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in self.shape]
         I_sp[coords] = 0
+        
+        if (np.max(I_sp)!=np.min(I_sp)) :
+            I_sp = (I_sp-np.min(I_sp))/(np.max(I_sp)-np.min(I_sp))    
         self.Isp = I_sp
         self.Ilist[1]=self.Isp
         return()
@@ -73,7 +82,9 @@ class noisyImage :
         val = len(np.unique(self.Ioriginal))
         val = 2 ** np.ceil(np.log2(val))
         I_poisson = np.random.poisson(self.Ioriginal*val)/float(val)
-        I_poisson = (I_poisson-np.min(I_poisson))/(np.max(I_poisson)-np.min(I_poisson))
+        
+        if (np.max(I_poisson)!=np.min(I_poisson)): 
+            I_poisson = (I_poisson-np.min(I_poisson))/(np.max(I_poisson)-np.min(I_poisson))
         self.Ipoiss = I_poisson
         self.Ilist[2]=self.Ipoiss
         return()
@@ -82,8 +93,10 @@ class noisyImage :
         """ Apply speckle noise on the original image """
         gauss = np.random.randn(self.shape[0],self.shape[1])      
         I_speckle = self.Ioriginal + self.Ioriginal * gauss
-        I_speckle = (I_speckle-np.min(I_speckle))/(np.max(I_speckle)-np.min(I_speckle))
-        self.Ispeckle =I_speckle
+        
+        if (np.max(I_speckle)!=np.min(I_speckle))  :
+            I_speckle = (I_speckle-np.min(I_speckle))/(np.max(I_speckle)-np.min(I_speckle))
+        self.Ispeckle = I_speckle
         self.Ilist[3]=self.Ispeckle
         return()
       
