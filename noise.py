@@ -9,8 +9,9 @@ import cv2
 class noisyImage :
     def __init__(self, path, file_name,                     # original image information
                  gauss_mu=0, gauss_sigma=0.3,               # default parameters for gaussian noise
-                 sp_ratio=0.5, sp_amount=0.004,            # default parameters for salt and pepper noise
-                 suppr_patch_size=10, suppr_patch_nb=1):    # default parameters for random patch suppression
+                 sp_ratio=0.5, sp_amount=0.004,             # default parameters for salt and pepper noise
+                 suppr_patch_size=10, suppr_patch_nb=1,     # default parameters for random patch suppression
+                 verbose = False):                          # If True, print values of noisy images when computed         
         """ Create a class gathering all noisy version of an original image
         PARAMETERS
         path : path where is located the original image
@@ -19,8 +20,9 @@ class noisyImage :
         gauss_sigma : variance of gaussian noise
         """
         
-        self.method_nb = 5                      #How many denoising methods are available 
-        self.Ilist = [None for i in range(self.method_nb)] #List of all available noisy images
+        self.verbose = verbose
+        self.method_nb = 5                                 # How many denoising methods are available 
+        self.Ilist = [None for i in range(self.method_nb)] # List of all available noisy images
         
         self.name = path+file_name
         original = cv2.imread(self.name, 0)
@@ -57,6 +59,9 @@ class noisyImage :
             I_gauss = (I_gauss-np.min(I_gauss))/(np.max(I_gauss)-np.min(I_gauss))
         self.Igauss = I_gauss
         self.Ilist[0] = I_gauss
+        
+        if self.verbose :
+            print("Gauss ", self.Igauss)
         return()
     
     def salt_and_pepper(self):
@@ -75,6 +80,9 @@ class noisyImage :
             I_sp = (I_sp-np.min(I_sp))/(np.max(I_sp)-np.min(I_sp))    
         self.Isp = I_sp
         self.Ilist[1]=self.Isp
+        
+        if self.verbose :
+            print("Salt and pepper ", self.Isp)
         return()
         
     def poisson(self):
@@ -87,6 +95,8 @@ class noisyImage :
             I_poisson = (I_poisson-np.min(I_poisson))/(np.max(I_poisson)-np.min(I_poisson))
         self.Ipoiss = I_poisson
         self.Ilist[2]=self.Ipoiss
+        if self.verbose :
+            print("Poisson ", self.Ipoiss)
         return()
     
     def speckle(self):
@@ -98,6 +108,8 @@ class noisyImage :
             I_speckle = (I_speckle-np.min(I_speckle))/(np.max(I_speckle)-np.min(I_speckle))
         self.Ispeckle = I_speckle
         self.Ilist[3]=self.Ispeckle
+        if self.verbose :
+            print("Speckle ", self.Ispeckle)
         return()
       
     def random_patch_suppression(self):
@@ -109,6 +121,8 @@ class noisyImage :
             I_lack[x:x+self.patch_size,y:y+self.patch_size]=255
         self.Isuppr = I_lack
         self.Ilist[4]=self.Isuppr
+        if self.verbose :
+            print("Random patch suppression ", self.Isuppr)
         return()
     
     def all_noise(self):
