@@ -12,19 +12,25 @@ import noise
 class denoisedImage :
     def __init__(self, noisy, original=None,
                  gauss_sigma=2,
-                 median_size=3):               #default parameter for gaussian filter
+                 median_size=3,     #default parameter for gaussian filter
+                 verbose = False):  #If True, print values of denoised images when computed         
         """ Create a class gathering all denoised version of a noisy image
         PARAMETERS
         noisy : noisy image
         original : original version of the noisy image if available
         gauss_sigma : standard deviation for the gaussian filter
         """
+        self.verbose = verbose
         self.method_nb = 4                      #How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] #List of all available denoised images
         
         self.Inoisy = noisy
-        self.Ioriginal = original
-        self.shape = (self.Ioriginal).shape
+        self.shape = self.Inoisy.shape
+            
+        if original==None:
+            self.Ioriginal = None
+        else:
+            self.Ioriginal = original
         
         self.Ibilateral = np.empty(self.shape)
         
@@ -41,24 +47,32 @@ class denoisedImage :
         """ Apply a bilateral filter on the noisy image """
         self.Ibilateral = skimage.restoration.denoise_bilateral(self.Inoisy, multichannel=False)
         self.Ilist[0] = self.Ibilateral
+        if self.verbose :
+            print('Bilateral :', self.Ibilateral)
         return()
     
     def NLmeans(self):
         """ Apply a Non-local means denoising on the noisy image """
         self.Inlmeans = skimage.restoration.denoise_nl_means(self.Inoisy, multichannel=False)
         self.Ilist[1] = self.Inlmeans
+        if self.verbose :
+            print('Non-local means :', self.Inlmeans)
         return()
     
     def gauss(self):
         """ Apply a gaussian filter on the noisy image """
         self.Igauss = scipy.ndimage.gaussian_filter(self.Inoisy, self.sigma)
         self.Ilist[2] = self.Igauss
+        if self.verbose :
+            print('gauss :', self.Igauss)
         return()
     
     def median(self):
         """ Apply a median filter on the noisy image """
         self.Imedian = scipy.ndimage.median_filter(self.Inoisy, self.median_size)
         self.Ilist[3] = self.Imedian
+        if self.verbose :
+            print('med ', self.Imedian)
         return()
     
     def all_denoise(self):
@@ -79,15 +93,19 @@ class denoisedImage :
     def all_show(self):
          """Create and show all possible denoised images of the noisy image """
          self.all_denoise()
-         print("Bilateral filter")
          self.show(self.Ibilateral, "Bilateral filter")
-         print("Non-local means denoising")
          self.show(self.Inlmeans, "Non-local means denoising")
-         print("Gaussian Filter")
          self.show(self.Igauss, "Gaussian Filter")
-         print("Median Filter")
          self.show(self.Imedian, "Median Filter")
          return()
+     
+    def all_evaluate(self):
+        """Compute euclidian distance between denoised and original images"""
+        scores = []
+        for i in range(self.method_nb) :
+            scores.append(np.linalg.norm(self.Ioriginal - self.Ilist[i]))
+        return(scores)
+        
             
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
@@ -101,3 +119,6 @@ if (__name__ == "__main__"):
     
     denoise_class = denoisedImage(im_noise, im)
     denoise_class.all_show()
+
+    scores = denoise_class.all_evaluate()
+    print(scores)
