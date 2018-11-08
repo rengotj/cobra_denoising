@@ -12,6 +12,7 @@ from pycobra.cobra import Cobra
 
 import noise
 import denoise
+import evaluation
 
 
 class machine:
@@ -128,21 +129,8 @@ def denoise_cobra(im_noise, train_path, verbose=False) :
         cv2.destroyAllWindows()
     
     return(Y)
-
-    
-#def eval_cobra(noise_class, train_path):
-#    """
-#    Compute euclidian distance between the original image (target) and the denoised image obtained with cogra aggregation
-#    """
-#    score = []
-#    for i in range(noise_class.method_nb) :
-#        im_noise = noise_class.Ilist[i]
-#        im_denoised = denoise_cobra(im_noise, train_path)
-#        score.append(np.linalg.norm(noise_class.Ioriginal - im_denoised))
-#    return(score)
         
-    
-    
+  
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
     file_name ="sub_lena.png"
@@ -157,3 +145,10 @@ if (__name__ == "__main__"):
     cv2.imwrite('denoised_cobra.png', Y)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
+    #Evaluation
+    evaluate = evaluation.eval_denoising(Y, noise_class.Ioriginal)
+    evaluation.all_evaluate()
+    noise_class.show(noise_class.Ioriginal, 'Original image')
+    noise_class.show(Y, 'Denoised image')
+    noise_class.show(evaluation.Idiff, 'Difference')    
