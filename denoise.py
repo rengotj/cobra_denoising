@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 import skimage.restoration
 import scipy.ndimage
+
 import noise
 
 class denoisedImage :
@@ -27,10 +28,7 @@ class denoisedImage :
         self.Inoisy = noisy
         self.shape = self.Inoisy.shape
             
-        if original==None:
-            self.Ioriginal = None
-        else:
-            self.Ioriginal = original
+        self.Ioriginal = original
         
         self.Ibilateral = np.empty(self.shape)
         
@@ -98,14 +96,6 @@ class denoisedImage :
          self.show(self.Igauss, "Gaussian Filter")
          self.show(self.Imedian, "Median Filter")
          return()
-     
-    def all_evaluate(self):
-        """Compute euclidian distance between denoised and original images"""
-        scores = []
-        for i in range(self.method_nb) :
-            scores.append(np.linalg.norm(self.Ioriginal - self.Ilist[i]))
-        return(scores)
-        
             
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
@@ -119,6 +109,3 @@ if (__name__ == "__main__"):
     
     denoise_class = denoisedImage(im_noise, im)
     denoise_class.all_show()
-
-    scores = denoise_class.all_evaluate()
-    print(scores)
