@@ -4,6 +4,7 @@ Created on Fri Nov  2 14:09:25 2018
 @author: juliette rengot
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import cv2
@@ -16,33 +17,52 @@ import evaluation
 
 
 class machine:
-    def __init__(self, name, num_denoised_method):
+    def __init__(self, name, num_denoised_method, patch_size):
         self.name = name
         self.num_denoised_method = num_denoised_method
+        self.patch_size = patch_size
         
     def predict(self, Inoisy) :
         #print("Predict in machine :", self.name)
         Inoisy = np.array(Inoisy)
-        if self.name == 'bilateral' :
-            denoise_class = denoise.denoisedImage(Inoisy)
-            denoise_class.bilateral()
-            image_denoised = denoise_class.Ibilateral            
-        elif self.name == 'nlmeans' :
-            denoise_class = denoise.denoisedImage(Inoisy)
-            denoise_class.NLmeans()
-            image_denoised = denoise_class.Inlmeans
-        elif self.name == 'gauss' :
-            denoise_class = denoise.denoisedImage(Inoisy)
-            denoise_class.gauss()
-            image_denoised = denoise_class.gauss            
-        elif self.name == 'median' :
-            denoise_class = denoise.denoisedImage(Inoisy)
-            denoise_class.median()
-            image_denoised = denoise_class.Imedian
-        return(image_denoised)
+        Idenoised = []
+        
+        if len(Inoisy.shape)==1:
+          iter_max = 1
+        else:
+          iter_max = Inoisy.shape[0]
+        for i in range(iter_max):
+          if len(Inoisy.shape)==1:
+            image_noisy = Inoisy.reshape((2*self.patch_size+1, 2*self.patch_size+1))
+          else:
+            image_noisy = Inoisy[i].reshape((2*self.patch_size+1, 2*self.patch_size+1))
+          
+          if self.name == 'bilateral' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.bilateral()
+              image_denoised = denoise_class.Ibilateral            
+          elif self.name == 'nlmeans' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.NLmeans()
+              image_denoised = denoise_class.Inlmeans
+          elif self.name == 'gauss' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.gauss()
+              image_denoised = denoise_class.Igauss            
+          elif self.name == 'median' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.median()
+              image_denoised = denoise_class.Imedian
+          else :
+            print("Unknown name : ", self.name)
+            return()
+              
+          Idenoised.append(image_denoised.reshape(-1))
+          
+        return(Idenoised)
 
   
-def list_neighbours(I,x,y,k):
+def list_neighbours(I,x,y,patch_size):
     """
     INPUT
     I : image
@@ -52,14 +72,14 @@ def list_neighbours(I,x,y,k):
     OUPUT
     L : list of I(x',y') where (x',y') is a pixel of the patch
     """
-    assert(0<=x-k)
-    assert(x+k<I.shape[0])
-    assert(0<=y-k)
-    assert(y+k<I.shape[1])
+    assert(0<=x-patch_size)
+    assert(x+patch_size<I.shape[0])
+    assert(0<=y-patch_size)
+    assert(y+patch_size<I.shape[1])
     
     L = []
-    for x1 in range(x-k, x+k+1):
-        for y1 in range(y-k, y+k+1):
+    for x1 in range(x-patch_size, x+patch_size+1):
+        for y1 in range(y-patch_size, y+patch_size+1):
             L.append(I[x1,y1])
     return(L)
 
@@ -100,7 +120,7 @@ def load_training_data(path, k=0):
             Xtrain2 += [list_neighbours(y2, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
     return(Xtrain, Xtrain1, Xtrain2, Ytrain)
 
-def denoise_cobra(im_noise, train_path, verbose=False) :
+def denoise_cobra(im_noise, train_path, patch_size=1, verbose=False) :
     """
     Denoise an noisy image using cobra aggregation
     
@@ -115,19 +135,18 @@ def denoise_cobra(im_noise, train_path, verbose=False) :
     #cobra parameters
     Alpha = 1 #proportion parameter
     Lambda = 0.1 # confidence parameter
-    M = 2 # number of preliminary estimators
-    k = 1 #patch size
+    M = 4 # number of preliminary estimators
     
     print("Training cobra model...")
-    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, k)
+    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, patch_size)
     cobra = Cobra(epsilon=Lambda, machines=M) # create a cobra machine
     cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
 
     print("Loading machines...")
-    #cobra.load_machine('bilateral', machine('bilateral',0))
-    #cobra.load_machine('nlmeans', machine('nlmeans',1))
-    cobra.load_machine('gauss', machine('gauss',2))
-    cobra.load_machine('median', machine('median',3))
+    cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
+    cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
+    cobra.load_machine('gauss', machine('gauss', 2, patch_size))
+    cobra.load_machine('median', machine('median', 3, patch_size))
 
     print("Loadin machine predictions...")
     cobra.load_machine_predictions() #agregate
@@ -135,11 +154,11 @@ def denoise_cobra(im_noise, train_path, verbose=False) :
         cobra.machine_predictions_
     
     print("Image denoising...")
-#    Y = cobra.pred(list(im_noise.reshape(-1,1)), Alpha)
+    #Y = cobra.pred(list(im_noise.reshape(-1,1)), Alpha)
     Y = np.zeros(noise_class.shape)
-    for i in range(k, noise_class.shape[0]-k):
-        for j in range(k, noise_class.shape[1]-k):
-            Y[i,j] = cobra.pred(list_neighbours(im_noise, i, j, k), Alpha)
+    for i in range(patch_size, noise_class.shape[0]-patch_size):
+        for j in range(patch_size, noise_class.shape[1]-patch_size):
+            Y[i,j] = cobra.pred(list_neighbours(im_noise, i, j, patch_size), Alpha)
             if verbose :
                 print('noisy pixel : ',im_noise[i,j])
                 print('denoised : ', Y[i,j])
@@ -164,7 +183,13 @@ if (__name__ == "__main__"):
     im_noise = noise_class.Ipoiss
 
     #cobra denoising
-    Y = denoise_cobra(im_noise, path+"//train//", True)
+    Y = denoise_cobra(im_noise, path+"//train//", patch_size=1, verbose=False)
+    
+    print("Y : ", Y)
+    
+    plt.imshow(Y)
+    plt.title('denoised_cobra')
+    
     cv2.imwrite('denoised_cobra.png', Y)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
