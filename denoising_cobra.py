@@ -161,17 +161,8 @@ def denoise_cobra(im_noise, train_path, patch_size=1, verbose=False) :
     if verbose :
         print("The denoised matrix has the following data matrix : ")
         print(Y)
-        print("Displaying the result...")
-        cv2.imshow('Denoised image (cobra)', np.array(Y))
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        #Diagnostic
-        cobra_diagnostics = Diagnostics(cobra, Xtest, Y, load_MSE=True)
-        print("The machine MSE are : ")
-        print(cobra_diagnostics.machine_MSE)
-        print("The optimal machine is : ")
-        print(cobra_diagnostics.optimal_machines(Xtest, Y))
-    return(Y)
+        
+    return(Y, cobra)
         
   
 if (__name__ == "__main__"):
@@ -184,20 +175,22 @@ if (__name__ == "__main__"):
     im_noise = noise_class.Ipoiss
 
     #cobra denoising
-    Y = denoise_cobra(im_noise, path+"//train//", patch_size=1, verbose=False)
-    
-    print("Y : ", Y)
-    
-    plt.imshow(Y)
-    plt.title('denoised_cobra')
-    
-    cv2.imwrite('denoised_cobra.png', Y)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
-    #Evaluation
-    evaluate = evaluation.eval_denoising(Y, noise_class.Ioriginal)
-    evaluation.all_evaluate()
+    Y, cobra_model = denoise_cobra(im_noise, path+"//train//", patch_size=1, verbose=False)
+    Y = np.array(Y).reshape(im_noise.shape)
+    #Display results
+    print("Displaying the result...")
     noise_class.show(noise_class.Ioriginal, 'Original image')
     noise_class.show(Y, 'Denoised image')
-    noise_class.show(evaluation.Idiff, 'Difference')    
+    noise_class.show(evaluation.Idiff, 'Difference') 
+    
+    #Evaluation
+    print("Evaluation...")
+    evaluate = evaluation.eval_denoising(Y, noise_class.Ioriginal)
+    evaluation.all_evaluate()
+    #Diagnostic
+    cobra_diagnostics = Diagnostics(model_cobra, Ytest, realYtest, load_MSE=True)
+    print("The machine MSE are : ")
+    print(cobra_diagnostics.machine_MSE)
+    print("The optimal machine is : ")
+    print(cobra_diagnostics.optimal_machines(Ytest, realYtest))
+    
