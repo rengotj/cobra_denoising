@@ -10,6 +10,7 @@ import os
 import cv2
 
 from pycobra.cobra import Cobra
+from pycobra.diagnostics import Diagnostics
 
 import noise
 import denoise
@@ -134,12 +135,12 @@ def denoise_cobra(im_noise, train_path, patch_size=1, verbose=False) :
     """
     #cobra parameters
     Alpha = 1 #proportion parameter
-    Lambda = 0.1 # confidence parameter
+    Epsilon = 0.1 # confidence parameter
     M = 4 # number of preliminary estimators
     
     print("Training cobra model...")
     Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, patch_size)
-    cobra = Cobra(epsilon=Lambda, machines=M) # create a cobra machine
+    cobra = Cobra(epsilon=Epsilon, machines=M) # create a cobra machine
     cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
 
     print("Loading machines...")
@@ -148,28 +149,28 @@ def denoise_cobra(im_noise, train_path, patch_size=1, verbose=False) :
     cobra.load_machine('gauss', machine('gauss', 2, patch_size))
     cobra.load_machine('median', machine('median', 3, patch_size))
 
-    print("Loadin machine predictions...")
+    print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
     if verbose :
         cobra.machine_predictions_
     
     print("Image denoising...")
-    #Y = cobra.pred(list(im_noise.reshape(-1,1)), Alpha)
-    Y = np.zeros(noise_class.shape)
-    for i in range(patch_size, noise_class.shape[0]-patch_size):
-        for j in range(patch_size, noise_class.shape[1]-patch_size):
-            Y[i,j] = cobra.pred(list_neighbours(im_noise, i, j, patch_size), Alpha)
-            if verbose :
-                print('noisy pixel : ',im_noise[i,j])
-                print('denoised : ', Y[i,j])
-        print('i : ',i)
+    Xtest = [list_neighbours(im_noise, x, y, patch_size) for x in range(patch_size, noise_class.shape[0]-patch_size) for y in range(patch_size,noise_class.shape[1]-patch_size)]
+    Y = cobra.predict(Xtest, int(Alpha*M))
                 
     if verbose :
-        print(Y)  
+        print("The denoised matrix has the following data matrix : ")
+        print(Y)
+        print("Displaying the result...")
         cv2.imshow('Denoised image (cobra)', np.array(Y))
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    
+        #Diagnostic
+        cobra_diagnostics = Diagnostics(cobra, Xtest, Y, load_MSE=True)
+        print("The machine MSE are : ")
+        print(cobra_diagnostics.machine_MSE)
+        print("The optimal machine is : ")
+        print(cobra_diagnostics.optimal_machines(Xtest, Y))
     return(Y)
         
   
