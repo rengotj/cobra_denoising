@@ -22,8 +22,10 @@ class denoisedImage :
         gauss_sigma : standard deviation for the gaussian filter
         """
         self.verbose = verbose
-        self.method_nb = 4                      #How many denoising methods are available 
-        self.Ilist = [None for i in range(self.method_nb)] #List of all available denoised images
+        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3}
+        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median"}
+        self.method_nb = len(self.str2int.keys())          # How many denoising methods are available 
+        self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
         
         self.Inoisy = noisy
         self.shape = self.Inoisy.shape

@@ -10,7 +10,7 @@ class noisyImage :
     def __init__(self, path, file_name,                     # original image information
                  gauss_mu=0, gauss_sigma=0.3,               # default parameters for gaussian noise
                  sp_ratio=0.5, sp_amount=0.004,             # default parameters for salt and pepper noise
-                 suppr_patch_size=10, suppr_patch_nb=1,     # default parameters for random patch suppression
+                 suppr_patch_size=1, suppr_patch_nb=1,     # default parameters for random patch suppression
                  verbose = False):                          # If True, print values of noisy images when computed         
         """ Create a class gathering all noisy version of an original image
         PARAMETERS
@@ -21,7 +21,9 @@ class noisyImage :
         """
         
         self.verbose = verbose
-        self.method_nb = 5                                 # How many denoising methods are available 
+        self.str2int = {"gaussian" : 0, "salt_pepper" : 1, "poisson" : 2, "speckle" : 3, "suppression" : 4}
+        self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "mspeckle", 4 : "suppression"}
+        self.method_nb = len(self.str2int.keys())               # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available noisy images
         
         self.name = path+file_name
