@@ -210,24 +210,24 @@ if (__name__ == "__main__"):
     patch = 1
     cobra_model, Alpha, Epsilon = define_cobra_model(path+"//train//", patch_size=patch, verbose=False)
     Y = denoise_cobra(im_noise, cobra_model, Alpha, patch_size=patch, verbose=False)
-    Y = np.array(Y).reshape(im_noise.shape)
+    im_denoise = np.array(Y).reshape(im_noise.shape)
     
     #Display results
     print("Displaying the result...")
     noise_class.show(noise_class.Ioriginal, 'Original image')
-    noise_class.show(Y, 'Denoised image')
+    noise_class.show(im_denoise, 'Denoised image')
     noise_class.show(evaluation.Idiff, 'Difference') 
     
     #Evaluation
     print("Evaluation...")
-    evaluate = evaluation.eval_denoising(Y, noise_class.Ioriginal)
+    evaluate = evaluation.eval_denoising(im_denoise, noise_class.Ioriginal)
     evaluation.all_evaluate()
     
     #Diagnostic
-    Ytest = [list_neighbours(Y, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch,noise_class.shape[1]-patch)]
-    cobra_diagnostics = Diagnostics(cobra_model, im_noise, Ytest, load_MSE=True)
+    Xtest = [list_neighbours(im_noise, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch,noise_class.shape[1]-patch)]
+    cobra_diagnostics = Diagnostics(cobra_model, Xtest, Y, load_MSE=True)
     print("The machine MSE are : ")
     print(cobra_diagnostics.machine_MSE)
     print("The optimal machine is : ")
-    print(cobra_diagnostics.optimal_machines(im_noise, Ytest))
+    print(cobra_diagnostics.optimal_machines(Xtest, Y))
     
