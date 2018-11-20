@@ -72,11 +72,11 @@ class noisyImage :
         # Salt mode
         num_salt = np.ceil(self.amount * self.size * self.s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt)) for i in self.shape]
-        I_sp[coords] = 1
+        I_sp[tuple(coords)] = 1
         # Pepper mode
         num_pepper = np.ceil(self.amount* self.size * (1. - self.s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in self.shape]
-        I_sp[coords] = 0
+        I_sp[tuple(coords)] = 0
         
         if (np.max(I_sp)!=np.min(I_sp)) :
             I_sp = (I_sp-np.min(I_sp))/(np.max(I_sp)-np.min(I_sp))    
