@@ -14,6 +14,64 @@ import noise
 import denoise
 import evaluation
 
+def list_neighbours(I,x,y,patch_size):
+    """
+    INPUT
+    I : image
+    x,y : coordinates of the central pixel of the consider patch
+    k : patch of size (2*k+1)(2*k+1)
+    
+    OUPUT
+    L : list of I(x',y') where (x',y') is a pixel of the patch
+    """
+    assert(0<=x-patch_size)
+    assert(x+patch_size<I.shape[0])
+    assert(0<=y-patch_size)
+    assert(y+patch_size<I.shape[1])
+    
+    L = []
+    for x1 in range(x-patch_size, x+patch_size+1):
+        for y1 in range(y-patch_size, y+patch_size+1):
+            L.append(I[x1,y1])
+    return(L)
+
+def load_training_data(path, noise_kind, k=0):
+    """ Load images, apply noise methods on it and
+    return three different training sets.
+    
+    INPUT
+    path : where are the training images
+    k : patch of size (2*k+1)(2*k+1) => (2*k+1)(2*k+1) features
+    
+    OUTPUT
+    Xtrain : list of pixel of noisy images
+    Xtrain1 : list of pixel of noisy images +  gaussian noise
+    Xtrain2 : list of pixel of noisy images - gaussian noise
+    Ytrain : list of pixel of original images
+    """
+    Xtrain  = []
+    Xtrain1 = []
+    Xtrain2 = []
+    Ytrain  = []
+    for file in os.listdir(path):
+        noise_class = noise.noisyImage(path, file)
+        noise_class.all_noise()
+        for i in noise_kind:
+            Ytrain += [noise_class.Ioriginal[x, y] for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
+            Inoisy = noise_class.Ilist[i]
+            
+            sigma = 0.1 # gaussian noise
+            eps = np.random.normal(0, sigma, noise_class.shape)
+            y1 = Inoisy + sigma * eps
+            y1 = (y1-y1.min())/(y1.max()-y1.min())
+            y2 = Inoisy - sigma * eps
+            y2 = (y2-y2.min())/(y2.max()-y2.min())
+            
+            Xtrain  += [list_neighbours(Inoisy, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
+            Xtrain1 += [list_neighbours(y1, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
+            Xtrain2 += [list_neighbours(y2, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
+    return(Xtrain, Xtrain1, Xtrain2, Ytrain)
+
 
 class machine:
     def __init__(self, name, num_denoised_method, patch_size):
@@ -61,65 +119,8 @@ class machine:
         return(Idenoised)
 
   
-def list_neighbours(I,x,y,patch_size):
-    """
-    INPUT
-    I : image
-    x,y : coordinates of the central pixel of the consider patch
-    k : patch of size (2*k+1)(2*k+1)
-    
-    OUPUT
-    L : list of I(x',y') where (x',y') is a pixel of the patch
-    """
-    assert(0<=x-patch_size)
-    assert(x+patch_size<I.shape[0])
-    assert(0<=y-patch_size)
-    assert(y+patch_size<I.shape[1])
-    
-    L = []
-    for x1 in range(x-patch_size, x+patch_size+1):
-        for y1 in range(y-patch_size, y+patch_size+1):
-            L.append(I[x1,y1])
-    return(L)
 
-def load_training_data(path, k=0):
-    """ Load images, apply noise methods on it and
-    return three different training sets.
-    
-    INPUT
-    path : where are the training images
-    k : patch of size (2*k+1)(2*k+1) => (2*k+1)(2*k+1) features
-    
-    OUTPUT
-    Xtrain : list of pixel of noisy images
-    Xtrain1 : list of pixel of noisy images +  gaussian noise
-    Xtrain2 : list of pixel of noisy images - gaussian noise
-    Ytrain : list of pixel of original images
-    """
-    Xtrain  = []
-    Xtrain1 = []
-    Xtrain2 = []
-    Ytrain  = []
-    for file in os.listdir(path):
-        noise_class = noise.noisyImage(path, file)
-        noise_class.all_noise()
-        for i in range(noise_class.method_nb):
-            Ytrain += [noise_class.Ioriginal[x, y] for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
-            Inoisy = noise_class.Ilist[i]
-            
-            sigma = 0.1 # gaussian noise
-            eps = np.random.normal(0, sigma, noise_class.shape)
-            y1 = Inoisy + sigma * eps
-            y1 = (y1-y1.min())/(y1.max()-y1.min())
-            y2 = Inoisy - sigma * eps
-            y2 = (y2-y2.min())/(y2.max()-y2.min())
-            
-            Xtrain  += [list_neighbours(Inoisy, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
-            Xtrain1 += [list_neighbours(y1, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
-            Xtrain2 += [list_neighbours(y2, x, y, k) for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
-    return(Xtrain, Xtrain1, Xtrain2, Ytrain)
-
-def define_cobra_model(train_path, patch_size=1, verbose=False) :
+def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=False) :
     """
     Train a cobra model for denoising task
     
@@ -136,7 +137,7 @@ def define_cobra_model(train_path, patch_size=1, verbose=False) :
     Epsilon = 0.1 # confidence parameter
     
     print("Training cobra model...")
-    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, patch_size)
+    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, training_noise_kind, patch_size)
     cobra = Cobra(epsilon=Epsilon, machines=Alpha) # create a cobra machine
     cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
 
@@ -199,30 +200,27 @@ def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
   
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
-    file_name ="test.png"
+    file_name ="sub_peppers.png"
+    
+    testing_noise_kind = 0
+    training_noise_kind = [0]
     
     noise_class = noise.noisyImage(path,file_name)
     noise_class.all_noise()
     
-    im_noise = noise_class.Ipoiss
+    im_noise = noise_class.Ilist[testing_noise_kind]
 
     #cobra denoising
     patch = 1
-    cobra_model, Alpha, Epsilon = define_cobra_model(path+"//train//", patch_size=patch, verbose=False)
+    cobra_model, Alpha, Epsilon = define_cobra_model(path+"//train//", training_noise_kind, patch_size=patch, verbose=False)
     Y = denoise_cobra(im_noise, cobra_model, Alpha, patch_size=patch, verbose=False)
     im_denoise = np.array(Y).reshape(im_noise.shape)
-    
-    #Display results
-    print("Displaying the result...")
-    noise_class.show(noise_class.Ioriginal, 'Original image')
-    noise_class.show(im_denoise, 'Denoised image')
-    noise_class.show(evaluation.Idiff, 'Difference') 
-    
+       
     #Evaluation
     print("Evaluation...")
     evaluate = evaluation.eval_denoising(im_denoise, noise_class.Ioriginal)
-    evaluation.all_evaluate()
-    
+    evaluate.all_evaluate()
+   
     #Diagnostic
     Xtest = [list_neighbours(im_noise, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch,noise_class.shape[1]-patch)]
     cobra_diagnostics = Diagnostics(cobra_model, Xtest, Y, load_MSE=True)
@@ -230,4 +228,10 @@ if (__name__ == "__main__"):
     print(cobra_diagnostics.machine_MSE)
     print("The optimal machine is : ")
     print(cobra_diagnostics.optimal_machines(Xtest, Y))
+    
+    #Display results
+    print("Displaying the result...")
+    noise_class.show(noise_class.Ioriginal, 'Original image')
+    noise_class.show(im_denoise, 'Denoised image')
+    noise_class.show(evaluation.Idiff, 'Difference') 
     

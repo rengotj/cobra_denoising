@@ -12,7 +12,7 @@ import noise
 
 class denoisedImage :
     def __init__(self, noisy, original=None,
-                 gauss_sigma=2,
+                 gauss_sigma=0.8,
                  median_size=3,     #default parameter for gaussian filter
                  verbose = False):  #If True, print values of denoised images when computed         
         """ Create a class gathering all denoised version of a noisy image
@@ -24,7 +24,7 @@ class denoisedImage :
         self.verbose = verbose
         self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3}
         self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median"}
-        self.method_nb = len(self.str2int.keys())          # How many denoising methods are available 
+        self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
         
         self.Inoisy = noisy
@@ -103,7 +103,7 @@ if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
     file_name ="lena.png"
     
-    noise_class = noise.noisyImage(path,file_name)
+    noise_class = noise.noisyImage(path, file_name, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_noise()
     
     im = noise_class.Ioriginal

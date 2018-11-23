@@ -23,7 +23,7 @@ class noisyImage :
         self.verbose = verbose
         self.str2int = {"gaussian" : 0, "salt_pepper" : 1, "poisson" : 2, "speckle" : 3, "suppression" : 4}
         self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "mspeckle", 4 : "suppression"}
-        self.method_nb = len(self.str2int.keys())               # How many denoising methods are available 
+        self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available noisy images
         
         self.name = path+file_name
@@ -120,7 +120,7 @@ class noisyImage :
         for i in range(self.patch_nb):
             x = np.random.randint(0,self.shape[0]-self.patch_size)
             y = np.random.randint(0,self.shape[1]-self.patch_size)
-            I_lack[x:x+self.patch_size,y:y+self.patch_size]=255
+            I_lack[x:x+self.patch_size,y:y+self.patch_size]=1
         self.Isuppr = I_lack
         self.Ilist[4]=self.Isuppr
         if self.verbose :
@@ -161,5 +161,5 @@ if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
     file_name ="lena.png"
     
-    noise_class=noisyImage(path, file_name, 0.5, 0.1, 0.2, 0.3, 5, 3)
+    noise_class=noisyImage(path, file_name, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
