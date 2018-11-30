@@ -3,14 +3,12 @@
 Created on Thu Nov  1 17:21:07 2018
 @author: juliette rengot
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import skimage.restoration
 import scipy.ndimage
 
 import noise
-import bm3d
 
 class denoisedImage :
     def __init__(self, noisy, original=None, color=0,

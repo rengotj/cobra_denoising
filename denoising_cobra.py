@@ -110,6 +110,14 @@ class machine:
               denoise_class = denoise.denoisedImage(image_noisy)
               denoise_class.median()
               image_denoised = denoise_class.Imedian
+          elif self.name == 'TVchambolle' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.TVchambolle()
+              image_denoised = denoise_class.Ichambolle
+          elif self.name == 'richardson_lucy' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.richardson_lucy()
+              image_denoised = denoise_class.Irl
           else :
             print("Unknown name : ", self.name)
             return()
@@ -146,6 +154,8 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
     cobra.load_machine('gauss', machine('gauss', 2, patch_size))
     cobra.load_machine('median', machine('median', 3, patch_size))
+    cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
+    cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
     
     print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
@@ -167,6 +177,8 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
     cobra.load_machine('gauss', machine('gauss', 2, patch_size))
     cobra.load_machine('median', machine('median', 3, patch_size))
+    cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
+    cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
     cobra.load_machine_predictions() #agregate
     if verbose :
         print("Loading machine predictions...")
@@ -200,12 +212,12 @@ def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
   
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
-    file_name ="sub_peppers.png"
+    file_name ="lena.png"
     
     testing_noise_kind = 0
     training_noise_kind = [0]
     
-    noise_class = noise.noisyImage(path,file_name)
+    noise_class = noise.noisyImage(path, file_name, 0, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_noise()
     
     im_noise = noise_class.Ilist[testing_noise_kind]
