@@ -7,7 +7,8 @@ import numpy as np
 import cv2
 
 class noisyImage :
-    def __init__(self, path, file_name,                     # original image information
+    def __init__(self, path, file_name,                    # original image information
+                 color=0,                                  # if 1 use color image, if 0 use grayscale image
                  gauss_mu=0, gauss_sigma=0.3,               # default parameters for gaussian noise
                  sp_ratio=0.5, sp_amount=0.004,             # default parameters for salt and pepper noise
                  suppr_patch_size=1, suppr_patch_nb=1,     # default parameters for random patch suppression
@@ -22,12 +23,13 @@ class noisyImage :
         
         self.verbose = verbose
         self.str2int = {"gaussian" : 0, "salt_pepper" : 1, "poisson" : 2, "speckle" : 3, "suppression" : 4}
-        self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "mspeckle", 4 : "suppression"}
+        self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "speckle", 4 : "suppression"}
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available noisy images
         
         self.name = path+file_name
-        original = cv2.imread(self.name, 0)
+        assert(color==0 or color==1)
+        original = cv2.imread(self.name, color)
         if (np.max(original)!=np.min(original)):
             self.Ioriginal = (original-np.min(original))/(np.max(original)-np.min(original))
         else:
@@ -103,7 +105,10 @@ class noisyImage :
     
     def speckle(self):
         """ Apply speckle noise on the original image """
-        gauss = np.random.randn(self.shape[0],self.shape[1])      
+        if len(self.shape) == 2 :
+            gauss = np.random.randn(self.shape[0],self.shape[1])
+        if len(self.shape) == 3 :
+            gauss = np.random.randn(self.shape[0], self.shape[1], self.shape[2])
         I_speckle = self.Ioriginal + self.Ioriginal * gauss
         
         if (np.max(I_speckle)!=np.min(I_speckle))  :
@@ -161,5 +166,5 @@ if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
     file_name ="lena.png"
     
-    noise_class=noisyImage(path, file_name, 0.5, 0.1, 0.2, 0.3, 10, 20)
+    noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
