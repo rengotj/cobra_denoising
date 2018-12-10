@@ -23,8 +23,8 @@ class denoisedImage :
         gauss_sigma : standard deviation for the gaussian filter
         """
         self.verbose = verbose
-        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5}
-        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy"}
+        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5, "impainting" : 6}
+        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy", 6 : "impainting"}
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
         
@@ -49,6 +49,8 @@ class denoisedImage :
         
         self.point_spread_rl = point_spread_rl
         self.Irl = np.empty(self.shape)
+
+        self.Iimpaint = np.empty(self.shape)
                
     def bilateral(self):        
         """ Apply a bilateral filter on the noisy image """
@@ -114,6 +116,22 @@ class denoisedImage :
         if self.verbose :
             print('Richardson Lucy :', self.Irl)
         return()
+
+    def inpaint(self):
+        """Inpainting"""
+        
+        if self.color == 0:
+            mask = (self.Inoisy==1)
+            I = skimage.restoration.inpaint.inpaint_biharmonic(self.Inoisy, mask, multichannel=False)
+        else:
+            mask = (self.Inoisy.mean(axis=2)==1)
+            I = skimage.restoration.inpaint.inpaint_biharmonic(self.Inoisy, mask, multichannel=True)            
+
+        self.Iimpaint = I
+        self.Ilist[self.str2int['impainting']] = self.Iimpaint
+        if self.verbose :
+            print('Impainting :', self.Iimpaint)
+        return()
     
     def all_denoise(self):
         """Apply all available denoise methods on the noisy image """
@@ -123,6 +141,7 @@ class denoisedImage :
         self.median()
         self.TVchambolle()
         self.richardson_lucy()
+        self.inpaint()
         return()
     
     def show(self, I, title=''):
@@ -141,18 +160,20 @@ class denoisedImage :
          self.show(self.Imedian, "Median Filter")
          self.show(self.Ichambolle, "TVchambolle")
          self.show(self.Irl, "Richardson Lucy deconvolution")
+         self.show(self.Iimpaint, "Impainting")
          return()
             
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
-    file_name ="peppers.png"
-    color = 0
+    file_name ="lena_grand.jpg"
+    color = 1
     
     noise_class = noise.noisyImage(path, file_name, color, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_noise()
     
     im = noise_class.Ioriginal
-    im_noise= noise_class.Igauss
+    im_noise= noise_class.Ispeckle
     
     denoise_class = denoisedImage(im_noise, im, color)
+    denoise_class.show(im_noise, "noisy image")
     denoise_class.all_show()
