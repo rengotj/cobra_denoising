@@ -23,8 +23,8 @@ class denoisedImage :
         gauss_sigma : standard deviation for the gaussian filter
         """
         self.verbose = verbose
-        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5, "impainting" : 6}
-        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy", 6 : "impainting"}
+        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5, "inpainting" : 6}
+        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy", 6 : "inpainting"}
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
         
@@ -50,7 +50,7 @@ class denoisedImage :
         self.point_spread_rl = point_spread_rl
         self.Irl = np.empty(self.shape)
 
-        self.Iimpaint = np.empty(self.shape)
+        self.Iinpaint = np.empty(self.shape)
                
     def bilateral(self):        
         """ Apply a bilateral filter on the noisy image """
@@ -127,10 +127,10 @@ class denoisedImage :
             mask = (self.Inoisy.mean(axis=2)==1)
             I = skimage.restoration.inpaint.inpaint_biharmonic(self.Inoisy, mask, multichannel=True)            
 
-        self.Iimpaint = I
-        self.Ilist[self.str2int['impainting']] = self.Iimpaint
+        self.Iinpaint = I
+        self.Ilist[self.str2int['inpainting']] = self.Iinpaint
         if self.verbose :
-            print('Impainting :', self.Iimpaint)
+            print('inpainting :', self.Iinpaint)
         return()
     
     def all_denoise(self):
@@ -160,7 +160,7 @@ class denoisedImage :
          self.show(self.Imedian, "Median Filter")
          self.show(self.Ichambolle, "TVchambolle")
          self.show(self.Irl, "Richardson Lucy deconvolution")
-         self.show(self.Iimpaint, "Impainting")
+         self.show(self.Iinpaint, "inpainting")
          return()
             
 if (__name__ == "__main__"):
