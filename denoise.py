@@ -165,15 +165,15 @@ class denoisedImage :
             
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
-    file_name ="lena_grand.jpg"
+    file_name ="lena.png"
     color = 1
     
     noise_class = noise.noisyImage(path, file_name, color, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_noise()
     
     im = noise_class.Ioriginal
-    im_noise= noise_class.Ispeckle
+    im_noise= noise_class.Isuppr
     
     denoise_class = denoisedImage(im_noise, im, color)
-    denoise_class.show(im_noise, "noisy image")
+    #denoise_class.show(im_noise, "noisy image")
     denoise_class.all_show()

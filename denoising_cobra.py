@@ -54,7 +54,7 @@ def load_training_data(path, noise_kind, k=0):
     Xtrain2 = []
     Ytrain  = []
     for file in os.listdir(path):
-        noise_class = noise.noisyImage(path, file)
+        noise_class = noise.noisyImage(path, file, 0, 0.5, 0.1, 0.2, 0.3, 1, 2)
         noise_class.all_noise()
         for i in noise_kind:
             Ytrain += [noise_class.Ioriginal[x, y] for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
@@ -118,6 +118,10 @@ class machine:
               denoise_class = denoise.denoisedImage(image_noisy)
               denoise_class.richardson_lucy()
               image_denoised = denoise_class.Irl
+          elif self.name == 'inpainting' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.inpaint()
+              image_denoised = denoise_class.Iinpaint
           else :
             print("Unknown name : ", self.name)
             return()
@@ -141,7 +145,7 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra : trained model
     """
     #initial cobra parameters
-    Alpha = 4 #how many machines must agree
+    Alpha = 7 #how many machines must agree
     Epsilon = 0.1 # confidence parameter
     
     print("Training cobra model...")
@@ -156,6 +160,7 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra.load_machine('median', machine('median', 3, patch_size))
     cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
     cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
+    cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
     
     print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
@@ -179,6 +184,7 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra.load_machine('median', machine('median', 3, patch_size))
     cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
     cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
+    cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
     cobra.load_machine_predictions() #agregate
     if verbose :
         print("Loading machine predictions...")
