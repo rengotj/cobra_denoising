@@ -119,9 +119,12 @@ class machine:
               denoise_class.richardson_lucy()
               image_denoised = denoise_class.Irl
           elif self.name == 'inpainting' :
-              denoise_class = denoise.denoisedImage(image_noisy)
-              denoise_class.inpaint()
-              image_denoised = denoise_class.Iinpaint
+              if image_noisy.shape == (1, 1):
+                  image_denoised = image_noisy
+              else :
+                  denoise_class = denoise.denoisedImage(image_noisy)
+                  denoise_class.inpaint()
+                  image_denoised = denoise_class.Iinpaint
           else :
             print("Unknown name : ", self.name)
             return()
