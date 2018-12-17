@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct 30 20:22:25 2018
-@author: juliette
+@author: juliette rengot
 """
 import numpy as np
 import cv2
@@ -118,20 +118,25 @@ class noisyImage :
         if self.verbose :
             print("Speckle ", self.Ispeckle)
         return()
-      
-    def random_patch_suppression(self):
-        """ Suppress random patch from the original image """
-        I_lack=np.copy(self.Ioriginal)
+    
+    def suppr(self, I):
+        """ Suppress random patch from an image I """
+        I_lack=np.copy(I)
         for i in range(self.patch_nb):
             x = np.random.randint(0,self.shape[0]-self.patch_size)
             y = np.random.randint(0,self.shape[1]-self.patch_size)
             I_lack[x:x+self.patch_size,y:y+self.patch_size]=1
-        self.Isuppr = I_lack
-        self.Ilist[4]=self.Isuppr
+        return(I_lack)
+        
+    def random_patch_suppression(self):
+        """ Suppress random patch from the original image """
+        Isuppr = self.suppr(self.Ioriginal)
+        self.Isuppr = Isuppr
+        self.Ilist[4] = self.Isuppr
         if self.verbose :
             print("Random patch suppression ", self.Isuppr)
         return()
-    
+        
     def all_noise(self):
          """Apply all available noise methods on the original image """
          self.add_gauss()
@@ -160,7 +165,15 @@ class noisyImage :
          print("Missing part")
          self.show(self.Isuppr,"Missing part")
 
-
+    def multi_noise(self):
+        self.all_noise()
+        Imulti = np.zeros(self.shape)
+        Imulti[0:self.shape[0]//2, 0:self.shape[1]//2] = self.Igauss[0:self.shape[0]//2, 0:self.shape[1]//2]
+        Imulti[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]] = self.Isp[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]]
+        Imulti[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2] = self.Ipoiss[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2]
+        Imulti[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]] = self.Ispeckle[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]]
+        Imulti = self.suppr(Imulti)
+        return(Imulti)
 
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
@@ -168,3 +181,8 @@ if (__name__ == "__main__"):
     
     noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
+    
+    print("Multi noises")
+    Imulti = noise_class.multi_noise()
+    noise_class.show(Imulti, "Multi noises image")
+    
