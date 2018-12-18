@@ -212,12 +212,19 @@ def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
     print("Image denoising...")
     Xtest = [list_neighbours(im_noise, x, y, patch_size) for x in range(patch_size, noise_class.shape[0]-patch_size) for y in range(patch_size,noise_class.shape[1]-patch_size)]
     Y = model.predict(Xtest, n_machines)
-                
+    #Padding
+    if patch_size > 0 :
+      Y_sol = im_noise.copy()
+      for x in range(patch_size, noise_class.shape[0]-patch_size) :
+        for y in range(patch_size,noise_class.shape[1]-patch_size) : 
+          Y_sol[x,y] = Y[(x-patch_size)*(noise_class.shape[0]-2*patch_size)+(y-patch_size)]
+      Y = Y_sol.reshape(-1)
+      
     if verbose :
         print("The denoised matrix has the following data matrix : ")
         print(Y)
         
-    return(Y)        
+    return(Y)       
   
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
@@ -226,10 +233,9 @@ if (__name__ == "__main__"):
     testing_noise_kind = 0
     training_noise_kind = [0]
     
-    noise_class = noise.noisyImage(path, file_name, 0, 0.5, 0.1, 0.2, 0.3, 10, 20)
-    noise_class.all_noise()
-    
-    im_noise = noise_class.Ilist[testing_noise_kind]
+    noise_class = noise.noisyImage(path, file_name, 0, 0.5, 0.1, 0.2, 0.3, 5, 10)  
+    im_noise = noise_class.multi_noise()
+    noise_class.show(im_noise,"noisy image")
 
     #cobra denoising
     patch = 1
