@@ -58,13 +58,13 @@ class eval_denoising :
         return()
     
 if (__name__ == "__main__"):
-    path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
+    path = "images//"
     file_name ="lena.png"
     
     noise_class = noise.noisyImage(path, file_name)
     noise_class.all_noise()
     
-    for i in range(noise_class.method_nb) :
+    for i in range(noise_class.method_nb-1) :
         im = noise_class.Ioriginal
         im_noise = noise_class.Ilist[i]
         denoise_class = denoise.denoisedImage(im_noise, im)

@@ -232,7 +232,7 @@ def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
     return(Y)      
   
 if (__name__ == "__main__"):
-    path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
+    path = "images//"
     file_name ="lena.png"
     
     noise_class = noise.noisyImage(path, file_name, 0, 0.5, 0.1, 0.2, 0.3, 5, 10)  

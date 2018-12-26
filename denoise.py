@@ -164,7 +164,7 @@ class denoisedImage :
          return()
             
 if (__name__ == "__main__"):
-    path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
+    path = "images//"
     file_name ="lena.png"
     color = 1
     
@@ -175,5 +175,7 @@ if (__name__ == "__main__"):
     im_noise= noise_class.Isuppr
     
     denoise_class = denoisedImage(im_noise, im, color)
-    #denoise_class.show(im_noise, "noisy image")
+    print("noisy image to denoise")
+    denoise_class.show(im_noise, "noisy image")
+    print('denoising...')
     denoise_class.all_show()
