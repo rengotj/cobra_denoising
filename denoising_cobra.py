@@ -3,6 +3,8 @@
 Created on Fri Nov  2 14:09:25 2018
 @author: juliette rengot
 """
+import warnings
+warnings.filterwarnings("ignore")
 
 import numpy as np
 import os
@@ -13,6 +15,7 @@ from pycobra.diagnostics import Diagnostics
 import noise
 import denoise
 import evaluation
+
 
 def list_neighbours(I,x,y,patch_size):
     """
@@ -54,10 +57,10 @@ def load_training_data(path, noise_kind, k=0):
     Xtrain2 = []
     Ytrain  = []
     for file in os.listdir(path):
-        noise_class = noise.noisyImage(path, file, 0, 0.5, 0.1, 0.2, 0.3, 1, 2)
-        noise_class.all_noise()
+        noise_class = noise.noisyImage(path, file, 0, 0.5, 0.1, 0.2, 0.3, 5, 10)
+        noise_class.multi_noise()
         for i in noise_kind:
-            Ytrain += [noise_class.Ioriginal[x, y] for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
+            Ytrain += [[noise_class.Ioriginal[x, y]] for x in range(k,noise_class.shape[0]-k) for y in range(k,noise_class.shape[1]-k)]
             Inoisy = noise_class.Ilist[i]
             
             sigma = 0.1 # gaussian noise
@@ -79,7 +82,7 @@ class machine:
         self.num_denoised_method = num_denoised_method
         self.patch_size = patch_size
         
-    def predict(self, Inoisy) :
+    def predict(self, Inoisy) :     
         #print("Predict in machine :", self.name)
         Inoisy = np.array(Inoisy)
         Idenoised = []
@@ -88,12 +91,13 @@ class machine:
           iter_max = 1
         else:
           iter_max = Inoisy.shape[0]
+        
         for i in range(iter_max):
           if len(Inoisy.shape)==1:
             image_noisy = Inoisy.reshape((2*self.patch_size+1, 2*self.patch_size+1))
           else:
             image_noisy = Inoisy[i].reshape((2*self.patch_size+1, 2*self.patch_size+1))
-          
+                        
           if self.name == 'bilateral' :
               denoise_class = denoise.denoisedImage(image_noisy)
               denoise_class.bilateral()
@@ -119,7 +123,7 @@ class machine:
               denoise_class.richardson_lucy()
               image_denoised = denoise_class.Irl
           elif self.name == 'inpainting' :
-              if image_noisy.shape == (1, 1):
+              if image_noisy.shape == (1, 1) or np.all(image_noisy==1):
                   image_denoised = image_noisy
               else :
                   denoise_class = denoise.denoisedImage(image_noisy)
@@ -128,14 +132,14 @@ class machine:
           else :
             print("Unknown name : ", self.name)
             return()
-              
-          Idenoised.append(image_denoised.reshape(-1))
           
-        return(Idenoised)
+          if self.patch_size>0:
+            Idenoised.append([image_denoised[self.patch_size, self.patch_size]])
+          else :
+            Idenoised.append([image_denoised])
+        return(Idenoised) 
 
-  
-
-def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=False) :
+def define_cobra_model(train_path, training_noise_kind, patch_size=1, optimi=False, verbose=False) :
     """
     Train a cobra model for denoising task
     
@@ -148,13 +152,14 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     cobra : trained model
     """
     #initial cobra parameters
-    Alpha = 7 #how many machines must agree
-    Epsilon = 0.1 # confidence parameter
+    Alpha = 4 #how many machines must agree
+    Epsilon = 0.2 # confidence parameter
     
     print("Training cobra model...")
     Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, training_noise_kind, patch_size)
     cobra = Cobra(epsilon=Epsilon, machines=Alpha) # create a cobra machine
-    cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
+    #cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
+    cobra.fit(Xtrain, Ytrain) # fit the cobra machine with our data
 
     print("Loading machines...")
     cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
@@ -168,30 +173,30 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, verbose=Fa
     print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
     if verbose :
-        cobra.machine_predictions_
+        print(cobra.machine_predictions_)
+    if optimi :        
+        print("Parameter optimisation")
+        cobra_diagnostics = Diagnostics(cobra, Xtrain, Ytrain)
+        Epsilon_opt, MSE = cobra_diagnostics.optimal_epsilon(Xtrain, Ytrain, line_points=100, info=False)
+        Alpha_opt, MSE = cobra_diagnostics.optimal_alpha(Xtrain, Ytrain, epsilon=Epsilon_opt, info=False)
+        if verbose :
+            print("epsilon = ", Epsilon_opt)
+            print("alpha = ", Alpha_opt)
         
-    print("Parameter optimisation")
-    cobra_diagnostics = Diagnostics(cobra, Xtrain, Ytrain)
-    Epsilon_opt, MSE = cobra_diagnostics.optimal_epsilon(Xtrain, Ytrain, line_points=100, info=False)
-    Alpha_opt, MSE = cobra_diagnostics.optimal_alpha(Xtrain, Ytrain, epsilon=Epsilon_opt, info=False)
-    if verbose :
-        print("epsilon = ", Epsilon_opt)
-        print("alpha = ", Alpha_opt)
-    
-    print("Training cobra model again...")
-    cobra = Cobra(epsilon=Epsilon_opt, machines=Alpha_opt) # create a cobra machine
-    cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
-    cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
-    cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
-    cobra.load_machine('gauss', machine('gauss', 2, patch_size))
-    cobra.load_machine('median', machine('median', 3, patch_size))
-    cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
-    cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
-    cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
-    cobra.load_machine_predictions() #agregate
-    if verbose :
-        print("Loading machine predictions...")
-        cobra.machine_predictions_
+        print("Training cobra model again...")
+        cobra = Cobra(epsilon=Epsilon_opt, machines=Alpha_opt) # create a cobra machine
+        cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
+        cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
+        cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
+        cobra.load_machine('gauss', machine('gauss', 2, patch_size))
+        cobra.load_machine('median', machine('median', 3, patch_size))
+        cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
+        cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
+        cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
+        cobra.load_machine_predictions() #agregate
+        if verbose :
+            print("Loading machine predictions...")
+            print(cobra.machine_predictions_)
         
     return(cobra, Alpha, Epsilon)
 
@@ -217,29 +222,30 @@ def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
       Y_sol = im_noise.copy()
       for x in range(patch_size, noise_class.shape[0]-patch_size) :
         for y in range(patch_size,noise_class.shape[1]-patch_size) : 
-          Y_sol[x,y] = Y[(x-patch_size)*(noise_class.shape[0]-2*patch_size)+(y-patch_size)]
+          Y_sol[x, y] = Y[(x-patch_size)*(noise_class.shape[1]-2*patch_size)+(y-patch_size)]
       Y = Y_sol.reshape(-1)
       
     if verbose :
         print("The denoised matrix has the following data matrix : ")
         print(Y)
         
-    return(Y)       
+    return(Y)      
   
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
     file_name ="lena.png"
     
-    testing_noise_kind = 0
-    training_noise_kind = [0]
-    
     noise_class = noise.noisyImage(path, file_name, 0, 0.5, 0.1, 0.2, 0.3, 5, 10)  
-    im_noise = noise_class.multi_noise()
-    noise_class.show(im_noise,"noisy image")
-
+    noise_class.multi_noise()
+    im_noise = noise_class.Imulti
+    noise_class.show(im_noise, "noisy image")
+    
+    testing_noise_kind = [5]
+    training_noise_kind = [i for i in range(noise_class.method_nb)]
+    
     #cobra denoising
-    patch = 1
-    cobra_model, Alpha, Epsilon = define_cobra_model(path+"//train//", training_noise_kind, patch_size=patch, verbose=False)
+    patch = 0
+    cobra_model, Alpha, Epsilon = define_cobra_model(path+"//train//", training_noise_kind, patch_size=patch, optimi=False, verbose=True)
     Y = denoise_cobra(im_noise, cobra_model, Alpha, patch_size=patch, verbose=False)
     im_denoise = np.array(Y).reshape(im_noise.shape)
        
@@ -261,4 +267,3 @@ if (__name__ == "__main__"):
     noise_class.show(noise_class.Ioriginal, 'Original image')
     noise_class.show(im_denoise, 'Denoised image')
     noise_class.show(evaluation.Idiff, 'Difference') 
-    

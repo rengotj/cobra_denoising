@@ -22,8 +22,8 @@ class noisyImage :
         """
         
         self.verbose = verbose
-        self.str2int = {"gaussian" : 0, "salt_pepper" : 1, "poisson" : 2, "speckle" : 3, "suppression" : 4}
-        self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "speckle", 4 : "suppression"}
+        self.str2int = {"gaussian" : 0, "salt_pepper" : 1, "poisson" : 2, "speckle" : 3, "suppression" : 4, "multi" : 5}
+        self.int2str = {0 : "gaussian", 1 : "salt_pepper", 2 : "poisson", 3 : "speckle", 4 : "suppression", 5 : "multi"}
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available noisy images
         
@@ -54,6 +54,7 @@ class noisyImage :
         self.patch_nb=suppr_patch_nb
         self.Isuppr = np.empty(self.shape)
 
+        self.Imulti = np.empty(self.shape)
         
     def add_gauss(self):
         """ Add gaussian noise to the original image """
@@ -144,7 +145,21 @@ class noisyImage :
          self.poisson()
          self.speckle()
          self.random_patch_suppression()
-         
+    
+    def multi_noise(self):
+        self.all_noise()
+        Imulti = np.zeros(self.shape)
+        Imulti[0:self.shape[0]//2, 0:self.shape[1]//2] = self.Igauss[0:self.shape[0]//2, 0:self.shape[1]//2]
+        Imulti[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]] = self.Isp[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]]
+        Imulti[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2] = self.Ipoiss[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2]
+        Imulti[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]] = self.Ispeckle[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]]
+        Imulti = self.suppr(Imulti)
+        self.Imulti = Imulti
+        self.Ilist[5] = self.Imulti
+        if self.verbose :
+            print("Multi noise ", self.Imulti)
+        return
+     
     def show(self, I, title=''):
         """ Display the image I with window entitled 'title' """
         cv2.imshow(title, I)
@@ -153,7 +168,7 @@ class noisyImage :
         
     def all_show(self):
          """Create and show all possible noise images """
-         self.all_noise()
+         self.multi_noise()
          print("Salt and Pepper noise")
          self.show(self.Isp, "Salt and Pepper noise")
          print("Speckle noise noise")
@@ -164,16 +179,8 @@ class noisyImage :
          self.show(self.Igauss, "Gaussian additive noise")
          print("Missing part")
          self.show(self.Isuppr,"Missing part")
-
-    def multi_noise(self):
-        self.all_noise()
-        Imulti = np.zeros(self.shape)
-        Imulti[0:self.shape[0]//2, 0:self.shape[1]//2] = self.Igauss[0:self.shape[0]//2, 0:self.shape[1]//2]
-        Imulti[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]] = self.Isp[0:self.shape[0]//2, self.shape[1]//2:self.shape[1]]
-        Imulti[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2] = self.Ipoiss[self.shape[0]//2:self.shape[0], 0:self.shape[1]//2]
-        Imulti[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]] = self.Ispeckle[self.shape[0]//2:self.shape[0], self.shape[1]//2:self.shape[1]]
-        Imulti = self.suppr(Imulti)
-        return(Imulti)
+         print("Multi noise")
+         self.show(self.Imulti,"Multi noise")
 
 if (__name__ == "__main__"):
     path = "C://Users//juliette//Desktop//enpc//3A//Graphs_in_Machine_Learning//projet//images//"
@@ -181,8 +188,4 @@ if (__name__ == "__main__"):
     
     noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
-    
-    print("Multi noises")
-    Imulti = noise_class.multi_noise()
-    noise_class.show(Imulti, "Multi noises image")
     
