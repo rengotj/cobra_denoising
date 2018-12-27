@@ -6,11 +6,13 @@ Created on Fri Nov  2 14:09:25 2018
 import warnings
 warnings.filterwarnings("ignore")
 
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
 from pycobra.cobra import Cobra
 from pycobra.diagnostics import Diagnostics
+from pycovra.visualisation import Visualisation
 
 import noise
 import denoise
@@ -266,4 +268,20 @@ if (__name__ == "__main__"):
     print("Displaying the result...")
     noise_class.show(noise_class.Ioriginal, 'Original image')
     noise_class.show(im_denoise, 'Denoised image')
-    noise_class.show(evaluation.Idiff, 'Difference') 
+    noise_class.show(evaluation.Idiff, 'Difference')
+    
+    #Visualisation
+    Xtest = [list_neighbours(im_noise, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch, noise_class.shape[1]-patch)]
+    Yreal = [noise_class.Ioriginal[x,y] for x in range(noise_class.shape[0]) for y in range(noise_class.shape[1])]
+    
+    visualise = Visualisation(cobra_model, np.array(Xtest), np.array(Yreal))
+    
+    #Plot the results of the machines versus the actual answers (testing space).
+    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting'])
+    
+    
+    plt.title("Prediction Vs Real pixel value")
+    plt.scatter(Yreal, Y)
+    plt.plot([x/100 for x in range(100)], [x/100 for x in range(100)], color='red')
+    plt.xlabel('real value')
+    plt.ylabel('prediction')
