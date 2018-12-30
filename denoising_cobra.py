@@ -272,16 +272,17 @@ if (__name__ == "__main__"):
     
     #Visualisation
     Xtest = [list_neighbours(im_noise, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch, noise_class.shape[1]-patch)]
-    Yreal = [noise_class.Ioriginal[x,y] for x in range(noise_class.shape[0]) for y in range(noise_class.shape[1])]
-    
-    visualise = Visualisation(cobra_model, np.array(Xtest), np.array(Yreal))
-    
-    #Plot the results of the machines versus the actual answers (testing space).
-    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting'])
-    
-    
+    Yreal = [noise_class.Ioriginal[x,y] for x in range(patch, noise_class.shape[0]-patch) for y in range(patch, noise_class.shape[1]-patch)]
+    Yreal_full = [noise_class.Ioriginal[x,y] for x in range(noise_class.shape[0]) for y in range(noise_class.shape[1])]
+
     plt.title("Prediction Vs Real pixel value")
-    plt.scatter(Yreal, Y)
+    plt.scatter(Yreal_full, Y)
     plt.plot([x/100 for x in range(100)], [x/100 for x in range(100)], color='red')
     plt.xlabel('real value')
     plt.ylabel('prediction')
+
+    visualise = Visualisation(cobra_model, np.array(Xtest), np.array(Yreal))
+
+    #Plot the results of the machines versus the actual answers (testing space).
+    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting'])
+
