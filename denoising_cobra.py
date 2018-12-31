@@ -79,10 +79,12 @@ def load_training_data(path, noise_kind, k=0):
 
 
 class machine:
-    def __init__(self, name, num_denoised_method, patch_size):
+    def __init__(self, name, num_denoised_method, patch_size, denoise_class_list=None, denoise_class_nb=None):
         self.name = name
         self.num_denoised_method = num_denoised_method
         self.patch_size = patch_size
+        self.denoise_class_list = denoise_class_list
+        self.denoise_class_nb = denoise_class_nb
         
     def predict(self, Inoisy) :     
         #print("Predict in machine :", self.name)
@@ -99,38 +101,66 @@ class machine:
             image_noisy = Inoisy.reshape((2*self.patch_size+1, 2*self.patch_size+1))
           else:
             image_noisy = Inoisy[i].reshape((2*self.patch_size+1, 2*self.patch_size+1))
-                        
+          
           if self.name == 'bilateral' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.bilateral()
-              image_denoised = denoise_class.Ibilateral            
+              image_denoised = denoise_class.Ibilateral
+          
           elif self.name == 'nlmeans' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.NLmeans()
               image_denoised = denoise_class.Inlmeans
+          
           elif self.name == 'gauss' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.gauss()
               image_denoised = denoise_class.Igauss            
+          
           elif self.name == 'median' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.median()
               image_denoised = denoise_class.Imedian
+          
           elif self.name == 'TVchambolle' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.TVchambolle()
               image_denoised = denoise_class.Ichambolle
+          
           elif self.name == 'richardson_lucy' :
-              denoise_class = denoise.denoisedImage(image_noisy)
+              if self.denoise_class_list == None or self.denoise_class_nb == None :
+                denoise_class = denoise.denoisedImage(image_noisy)
+              else :
+                denoise_class = self.denoise_class_list[self.denoise_class_nb]
               denoise_class.richardson_lucy()
               image_denoised = denoise_class.Irl
+          
           elif self.name == 'inpainting' :
               if image_noisy.shape == (1, 1) or np.all(image_noisy==1):
                   image_denoised = image_noisy
               else :
-                  denoise_class = denoise.denoisedImage(image_noisy)
+                  if self.denoise_class_list == None or self.denoise_class_nb == None :
+                    denoise_class = denoise.denoisedImage(image_noisy)
+                  else :
+                    denoise_class = self.denoise_class_list[self.denoise_class_nb]
                   denoise_class.inpaint()
                   image_denoised = denoise_class.Iinpaint
+          
           else :
             print("Unknown name : ", self.name)
             return()
@@ -139,14 +169,14 @@ class machine:
             Idenoised.append([image_denoised[self.patch_size, self.patch_size]])
           else :
             Idenoised.append([image_denoised])
-        return(Idenoised) 
+        return(Idenoised)
 
-def define_cobra_model(train_path, training_noise_kind, patch_size=1, optimi=False, verbose=False) :
+def define_cobra_model(train_names, training_noise_kind, im_shape, patch_size=1, optimi=True, verbose=False, denoise_class_list=None,machine_type=None) :
     """
     Train a cobra model for denoising task
     
     INPUT :
-    train_path : where are the training images
+    train_names : list containing the name of images used to train the model
     patch_size : use patch of size (2*patch_size+1)*(2*patch_size+1) as features
     verbose : print or not information during the training
         
@@ -154,29 +184,34 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, optimi=Fal
     cobra : trained model
     """
     #initial cobra parameters
-    Alpha = 4 #how many machines must agree
+    Alpha = 4     #how many machines must agree
     Epsilon = 0.2 # confidence parameter
     
     print("Training cobra model...")
-    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_path, training_noise_kind, patch_size)
+    Xtrain, Xtrain1, Xtrain2, Ytrain = load_training_data(train_names, training_noise_kind, patch_size)
     cobra = Cobra(epsilon=Epsilon, machines=Alpha) # create a cobra machine
     #cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
     cobra.fit(Xtrain, Ytrain) # fit the cobra machine with our data
 
     print("Loading machines...")
-    cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
-    cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
-    cobra.load_machine('gauss', machine('gauss', 2, patch_size))
-    cobra.load_machine('median', machine('median', 3, patch_size))
-    cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
-    cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
-    cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
-    
+    if denoise_class_list == None or machine_type == None:
+      cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
+      cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
+      cobra.load_machine('gauss', machine('gauss', 2, patch_size))
+      cobra.load_machine('median', machine('median', 3, patch_size))
+      cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
+      cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
+      cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
+    else :
+      for i in range(len(denoise_class_list)):
+        cobra.load_machine(machine_type+'_'+str(i), machine(machine_type, 0, patch_size, denoise_class_list, i))
+
     print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
     if verbose :
         print(cobra.machine_predictions_)
-    if optimi :        
+   
+    if optimi : 
         print("Parameter optimisation")
         cobra_diagnostics = Diagnostics(cobra, Xtrain, Ytrain)
         Epsilon_opt, MSE = cobra_diagnostics.optimal_epsilon(Xtrain, Ytrain, line_points=100, info=False)
@@ -184,22 +219,26 @@ def define_cobra_model(train_path, training_noise_kind, patch_size=1, optimi=Fal
         if verbose :
             print("epsilon = ", Epsilon_opt)
             print("alpha = ", Alpha_opt)
-        
+
         print("Training cobra model again...")
-        cobra = Cobra(epsilon=Epsilon_opt, machines=Alpha_opt) # create a cobra machine
-        cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain) # fit the cobra machine with our data
-        cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
-        cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
-        cobra.load_machine('gauss', machine('gauss', 2, patch_size))
-        cobra.load_machine('median', machine('median', 3, patch_size))
-        cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
-        cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
-        cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
-        cobra.load_machine_predictions() #agregate
+        cobra = Cobra(epsilon=Epsilon_opt, machines=Alpha_opt)
+        cobra.fit(Xtrain, Ytrain, default=False, X_k=Xtrain1, X_l=Xtrain2, y_k=Ytrain, y_l=Ytrain)
+        if denoise_class_list == None or machine_type == None:
+          cobra.load_machine('bilateral', machine('bilateral', 0, patch_size))
+          cobra.load_machine('nlmeans', machine('nlmeans', 1, patch_size))
+          cobra.load_machine('gauss', machine('gauss', 2, patch_size))
+          cobra.load_machine('median', machine('median', 3, patch_size))
+          cobra.load_machine('TVchambolle', machine('TVchambolle', 4, patch_size))
+          cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
+          cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
+        else :
+          for i in range(len(denoise_class_list)):
+            cobra.load_machine(machine_type+'_'+str(i), machine(machine_type, 0, patch_size, denoise_class_list, i))
+        cobra.load_machine_predictions()
         if verbose :
             print("Loading machine predictions...")
             print(cobra.machine_predictions_)
-        
+
     return(cobra, Alpha, Epsilon)
 
 def denoise_cobra(im_noise, model, n_machines, patch_size=1, verbose=False) :
