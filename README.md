@@ -7,9 +7,11 @@ The folder images contains some images to train and test the model.
 The code is contained into 4 files :
 * noise.py : a module to add artificial noises to images (Gaussian, Poisson, salt-and-pepper, speckle, random suppression, multi) 
 * denoise.py : a module to denoise images with classical methods (Gaussian filter, Median filter, Bilateral filter, non-local means, TV-Chambolle, Richardson-Lucy deconvolution, inpainting)
-* evalute.py : a module to evaluate denoising quality (RMSE, PSNR)
+* evaluation.py : a module to evaluate denoising quality (RMSE, PSNR)
 * denoising_cobra.py : the main file to create a cobra model and use it for denoising task
 
 Two notebooks are available :
 * demo.ipyng : it shows an example of cobra denoising
 * demo_configuration_median.ipyng : it shows an example of how to use the method for median filter configuration
+
+A complete description of the project is available in French in the document Rapport_de_projet.pdf
