@@ -75,11 +75,17 @@ class noisyImage :
         # Salt mode
         num_salt = np.ceil(self.amount * self.size * self.s_vs_p)
         coords = [np.random.randint(0, i - 1, int(num_salt)) for i in self.shape]
-        I_sp[tuple(coords)] = 1
+        if len(I_sp.shape) == 3 :
+            I_sp[coords[0], coords[1], :] = [1, 1, 1]
+        else :
+            I_sp[tuple(coords)] = 1
         # Pepper mode
         num_pepper = np.ceil(self.amount* self.size * (1. - self.s_vs_p))
         coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in self.shape]
-        I_sp[tuple(coords)] = 0
+        if len(I_sp.shape) == 3 :
+            I_sp[coords[0], coords[1], :] = [0, 0, 0]
+        else :
+            I_sp[tuple(coords)] = 0
         
         if (np.max(I_sp)!=np.min(I_sp)) :
             I_sp = (I_sp-np.min(I_sp))/(np.max(I_sp)-np.min(I_sp))    
@@ -184,7 +190,7 @@ class noisyImage :
 
 if (__name__ == "__main__"):
     path = "images//"
-    file_name ="lena.png"
+    file_name ="peppers.png"
     
     noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
