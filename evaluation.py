@@ -11,10 +11,16 @@ import denoise
 
 class eval_denoising :
     def __init__(self, I1, I2,   # I1 and I2 are the two images to compare
+                 I3=None,        #Image bruitée
                  PSNR_peak=255):     # default value for PSNR
         self.I1 = I1    #result
         self.I2 = I2    #objective
         self.Idiff = I2 - I1
+        
+        if I3 != None :
+            self.I_noise_only = I3 - I1
+        else:
+            self.I_noise_only = None
         
         self.euclidian_distance = None
         
