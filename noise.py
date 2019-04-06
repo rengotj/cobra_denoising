@@ -9,10 +9,10 @@ import cv2
 class noisyImage :
     def __init__(self, path, file_name,                    # original image information
                  color=0,                                  # if 1 use color image, if 0 use grayscale image
-                 gauss_mu=0, gauss_sigma=0.3,               # default parameters for gaussian noise
-                 sp_ratio=0.5, sp_amount=0.004,             # default parameters for salt and pepper noise
+                 gauss_mu=0, gauss_sigma=0.3,              # default parameters for gaussian noise
+                 sp_ratio=0.5, sp_amount=0.004,            # default parameters for salt and pepper noise
                  suppr_patch_size=1, suppr_patch_nb=1,     # default parameters for random patch suppression
-                 verbose = False):                          # If True, print values of noisy images when computed         
+                 verbose = False):                         # If True, print values of noisy images when computed         
         """ Create a class gathering all noisy version of an original image
         PARAMETERS
         path : path where is located the original image
@@ -190,8 +190,7 @@ class noisyImage :
 
 if (__name__ == "__main__"):
     path = "images//"
-    file_name ="peppers.png"
+    file_name ="lena.png"
     
     noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
-    
