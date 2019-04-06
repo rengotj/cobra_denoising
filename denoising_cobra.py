@@ -12,7 +12,7 @@ import os
 
 from pycobra.cobra import Cobra
 from pycobra.diagnostics import Diagnostics
-from pycovra.visualisation import Visualisation
+from pycobra.visualisation import Visualisation
 
 import noise
 import denoise
@@ -171,7 +171,7 @@ class machine:
             Idenoised.append([image_denoised])
         return(Idenoised)
 
-def define_cobra_model(train_names, training_noise_kind, im_shape, patch_size=1, optimi=True, verbose=False, denoise_class_list=None,machine_type=None) :
+def define_cobra_model(train_names, training_noise_kind, patch_size=1, optimi=True, verbose=False, denoise_class_list=None,machine_type=None) :
     """
     Train a cobra model for denoising task
     
