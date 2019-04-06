@@ -6,7 +6,10 @@ Created on Thu Nov  1 17:21:07 2018
 import numpy as np
 import cv2
 import skimage.restoration
+from sklearn.feature_extraction.image import extract_patches_2d, reconstruct_from_patches_2d
 import scipy.ndimage
+#import pybm3d # This library is compatible with linux. It is possible not to use it
+from ksvd import ApproximateKSVD
 
 import noise
 
@@ -15,7 +18,9 @@ class denoisedImage :
                  gauss_sigma=0.8,   #default parameter for gaussian filter
                  median_size=3,     #default parameter for the median filter
                  point_spread_rl=5, #default parameter for the richardson lucy deconvolution
-                 verbose = False):  #If True, print values of denoised images when computed         
+                 bm3d_std=40,       #default parameter for the BM3D algorithm
+                 ksvd_components=32, ksvd_patch=(5, 5), #default parameter for K-SVD algorithm
+                 verbose = False):  #If True, print values of denoised images when computed       
         """ Create a class gathering all denoised version of a noisy image
         PARAMETERS
         noisy : noisy image
@@ -23,8 +28,14 @@ class denoisedImage :
         gauss_sigma : standard deviation for the gaussian filter
         """
         self.verbose = verbose
-        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2, "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5, "inpainting" : 6}
-        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian", 3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy", 6 : "inpainting"}
+        self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2,
+                        "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5,
+                        "inpainting" : 6, "ksvd" : 7 #, "bm3d" :8
+                        }
+        self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian",
+                        3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy",
+                        6 : "inpainting", 7 : "ksvd" #, 8 : "bm3d"
+                        }
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
         
@@ -49,7 +60,14 @@ class denoisedImage :
         
         self.point_spread_rl = point_spread_rl
         self.Irl = np.empty(self.shape)
-
+        
+#        self.bm3d_std = bm3d_std
+#        self.Ibm3d = np.empty(self.shape)
+        
+        self.ksvd_components = ksvd_components
+        self.ksvd_patch = ksvd_patch
+        self.Iksvd = np.empty(self.shape)
+        
         self.Iinpaint = np.empty(self.shape)
                
     def bilateral(self):        
@@ -117,6 +135,34 @@ class denoisedImage :
             print('Richardson Lucy :', self.Irl)
         return()
 
+#    def bm3d(self):
+#        """BM3D denoising algorithm"""
+#        self.Ibm3d = pybm3d.bm3d.bm3d((self.Inoisy*255).astype(np.int), self.bm3d_std)
+#        self.Ibm3d = np.clip(self.Ibm3d/255., 0, 1)
+#        self.Ilist[self.str2int['bm3d']] = self.Ibm3d
+#        if self.verbose :
+#              print('BM3D :', self.Ibm3d)
+#        return()
+ 
+    def ksvd(self):
+        """K-SVD denoising algorithm"""
+        P = extract_patches_2d(self.Inoisy, self.ksvd_patch)
+        patch_shape = P.shape
+        P = P.reshape((patch_shape[0], -1))
+        mean = np.mean(P, axis=1)[:, np.newaxis]
+        P -= mean
+
+        aksvd = ApproximateKSVD(n_components=self.ksvd_components)
+        dico = aksvd.fit(P).components_
+        reduced = (aksvd.transform(P)).dot(dico) + mean
+        reduced_img = reconstruct_from_patches_2d(reduced.reshape(patch_shape), self.shape)
+          
+        self.Iksvd = np.clip(reduced_img, 0 ,1)
+        self.Ilist[self.str2int['ksvd']] = self.Iksvd
+        if self.verbose :
+            print('K-SVD :', self.Iksvd)
+        return()
+      
     def inpaint(self):
         """Inpainting"""
         
@@ -130,7 +176,7 @@ class denoisedImage :
         self.Iinpaint = I
         self.Ilist[self.str2int['inpainting']] = self.Iinpaint
         if self.verbose :
-            print('inpainting :', self.Iinpaint)
+            print('Inpainting :', self.Iinpaint)
         return()
     
     def all_denoise(self):
@@ -142,6 +188,8 @@ class denoisedImage :
         self.TVchambolle()
         self.richardson_lucy()
         self.inpaint()
+        self.ksvd()
+#        self.bm3d()
         return()
     
     def show(self, I, title=''):
@@ -160,7 +208,9 @@ class denoisedImage :
          self.show(self.Imedian, "Median Filter")
          self.show(self.Ichambolle, "TVchambolle")
          self.show(self.Irl, "Richardson Lucy deconvolution")
-         self.show(self.Iinpaint, "inpainting")
+         self.show(self.Iinpaint, "Inpainting")
+         self.show(self.Iksvd,"K-SVD")
+#         self.show(self.Ibm3d, "BM3D")
          return()
             
 if (__name__ == "__main__"):
