@@ -68,9 +68,9 @@ if (__name__ == "__main__"):
     file_name ="lena.png"
     
     noise_class = noise.noisyImage(path, file_name)
-    noise_class.all_noise()
+    noise_class.multi_noise()
     
-    for i in range(noise_class.method_nb-1) :
+    for i in range(noise_class.method_nb) :
         im = noise_class.Ioriginal
         im_noise = noise_class.Ilist[i]
         denoise_class = denoise.denoisedImage(im_noise, im)
