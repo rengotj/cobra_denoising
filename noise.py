@@ -194,3 +194,4 @@ if (__name__ == "__main__"):
     
     noise_class=noisyImage(path, file_name, 1, 0.5, 0.1, 0.2, 0.3, 10, 20)
     noise_class.all_show()
+    
