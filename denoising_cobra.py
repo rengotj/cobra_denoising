@@ -286,7 +286,6 @@ if (__name__ == "__main__"):
     noise_class.show(evaluation.Idiff, 'Difference')
     
     # Visualisation
-    Xtest = [list_neighbours(im_noise, x, y, patch) for x in range(patch, noise_class.shape[0]-patch) for y in range(patch, noise_class.shape[1]-patch)]
     Yreal = [noise_class.Ioriginal[x,y] for x in range(patch, noise_class.shape[0]-patch) for y in range(patch, noise_class.shape[1]-patch)]
     Yreal_full = [noise_class.Ioriginal[x,y] for x in range(noise_class.shape[0]) for y in range(noise_class.shape[1])]
 
@@ -296,7 +295,6 @@ if (__name__ == "__main__"):
     plt.xlabel('real value')
     plt.ylabel('prediction')
 
-
     # Plot the results of the machines versus the actual answers (testing space).
     visualise = Visualisation(cobra_model, np.array(Xtest), np.array(Yreal))
-    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting'])
+    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting', 'ksvd'])
