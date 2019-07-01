@@ -5,8 +5,8 @@ Created on Thu Nov  8 09:16:52 2018
 """
 
 import numpy as np
-from SSIM_PIL import compare_ssim
-from PIL import Image
+from sklearn.metrics import mean_absolute_error
+from sewar.full_ref import uqi, vifp
 
 import noise
 import denoise
@@ -26,12 +26,16 @@ class eval_denoising :
         
         self.euclidian_distance = None
 
+        self.MAE = None
+        
         self.RMSE = None
         
         self.peak = PSNR_peak
         self.PSNR = None
         
-        self.SSIM = None
+        self.UQI = None
+        
+        self.VIF = None
       
     def compute_euclidian_distance(self):
         """
@@ -39,31 +43,43 @@ class eval_denoising :
         """
         self.euclidian_distance = np.linalg.norm(self.I1 - self.I2)
         return()
- 
+  
+    def compute_MAE(self):
+        """
+        Computes the Mean Absolute Error between two images
+        """
+        self.MAE = np.mean(np.abs(self.I1 - self.I2))
+        return()
+    
     def compute_RMSE(self):
         """
-        Computes the RMSE 'metric' between two images
+        Computes the Root Mean Square Error between two images
         """
         self.RMSE = np.sqrt(((self.I1 - self.I2) ** 2).mean())
         return ()
     
     def compute_PSNR(self):
         """
-        Computes the PSNR 'metric' between two images assumed to be in the range [0,1]
+        Computes the Peak Signal to Noise Ratio between two images
         """
-        x = ((np.array(self.I1).squeeze() - np.array(self.I2).squeeze()).flatten())
+        img_1 = np.array(self.I1/np.max(self.I1))
+        img_2 = np.array(self.I2/np.max(self.I2))
+        x = (img_1.squeeze() - img_2.squeeze()).flatten()
         self.PSNR = 10*np.log10(self.peak**2 / np.mean(x**2))
         return ()
     
-    def compute_SSIM(self):
+    def compute_UQI(self) :
         """
-        Computes the Structural SIMilarity between two images
+        Compute Universal Quality Image Index between two images
         """
-        img_1 = np.array(self.I1*255, dtype=np.uint8)
-        img_1 = Image.fromarray(img_1)
-        img_2 = np.array(self.I2*255, dtype=np.uint8)
-        img_2 = Image.fromarray(img_2)   
-        self.SSIM = compare_ssim(img_1, img_2)
+        self.UQI = uqi(self.I1, self.I2)
+        return ()
+
+    def compute_VIF(self) :
+        """
+        Compute Visual Information Fidelity between two images
+        """
+        self.VIF = vifp(self.I1, self.I2)
         return ()
     
     def all_evaluate(self):
@@ -72,12 +88,16 @@ class eval_denoising :
         """
         self.compute_euclidian_distance()
         print("Euclidian distance : ", self.euclidian_distance)
+        self.compute_MAE()
+        print("MAE : ", self.MAE)
         self.compute_RMSE()
         print("RMSE : ", self.RMSE)
         self.compute_PSNR()
         print("PSNR : ", self.PSNR)
-        self.compute_SSIM()
-        print("SSIM : ", self.SSIM)
+        self.compute_UQI()
+        print("UQI : ", self.UQI)
+        self.compute_VIF()
+        print("VIF : ", self.VIF)
         return()
     
 if (__name__ == "__main__"):
