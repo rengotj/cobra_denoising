@@ -5,6 +5,8 @@ Created on Thu Nov  8 09:16:52 2018
 """
 
 import numpy as np
+from SSIM_PIL import compare_ssim
+from PIL import Image
 
 import noise
 import denoise
@@ -23,11 +25,13 @@ class eval_denoising :
             self.I_noise_only = None
         
         self.euclidian_distance = None
+
+        self.RMSE = None
         
         self.peak = PSNR_peak
         self.PSNR = None
         
-        self.RMSE = None
+        self.SSIM = None
       
     def compute_euclidian_distance(self):
         """
@@ -35,6 +39,13 @@ class eval_denoising :
         """
         self.euclidian_distance = np.linalg.norm(self.I1 - self.I2)
         return()
+ 
+    def compute_RMSE(self):
+        """
+        Computes the RMSE 'metric' between two images
+        """
+        self.RMSE = np.sqrt(((self.I1 - self.I2) ** 2).mean())
+        return ()
     
     def compute_PSNR(self):
         """
@@ -44,11 +55,15 @@ class eval_denoising :
         self.PSNR = 10*np.log10(self.peak**2 / np.mean(x**2))
         return ()
     
-    def compute_RMSE(self):
+    def compute_SSIM(self):
         """
-        Computes the RMSE 'metric' between two images
+        Computes the Structural SIMilarity between two images
         """
-        self.RMSE = np.sqrt(((self.I1 - self.I2) ** 2).mean())
+        img_1 = np.array(self.I1*255, dtype=np.uint8)
+        img_1 = Image.fromarray(img_1)
+        img_2 = np.array(self.I2*255, dtype=np.uint8)
+        img_2 = Image.fromarray(img_2)   
+        self.SSIM = compare_ssim(img_1, img_2)
         return ()
     
     def all_evaluate(self):
@@ -57,23 +72,26 @@ class eval_denoising :
         """
         self.compute_euclidian_distance()
         print("Euclidian distance : ", self.euclidian_distance)
-        self.compute_PSNR()
-        print("PSNR : ", self.PSNR)
         self.compute_RMSE()
         print("RMSE : ", self.RMSE)
+        self.compute_PSNR()
+        print("PSNR : ", self.PSNR)
+        self.compute_SSIM()
+        print("SSIM : ", self.SSIM)
         return()
     
 if (__name__ == "__main__"):
     path = "images//"
     file_name ="lena.png"
+    color = 1
     
-    noise_class = noise.noisyImage(path, file_name)
+    noise_class = noise.noisyImage(path, file_name, color)
     noise_class.multi_noise()
     
     for i in range(noise_class.method_nb) :
         im = noise_class.Ioriginal
         im_noise = noise_class.Ilist[i]
-        denoise_class = denoise.denoisedImage(im_noise, im)
+        denoise_class = denoise.denoisedImage(im_noise, im, color)
         denoise_class.all_denoise()    
         
         for j in range(denoise_class.method_nb) :
