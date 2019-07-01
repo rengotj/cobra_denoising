@@ -30,11 +30,11 @@ class denoisedImage :
         self.verbose = verbose
         self.str2int = {"bilateral" : 0, "nl_means" : 1, "gaussian" : 2,
                         "median" : 3, "tv_chambolle" : 4, "richardson_lucy" : 5,
-                        "inpainting" : 6, "ksvd" : 7 #, "bm3d" :8
+                        "inpainting" : 6, "ksvd" : 7, "lee" : 8 #, "bm3d" :9
                         }
         self.int2str = {0 : "bilateral", 1 : "nl_means", 2 : "gaussian",
                         3 : "median", 4 : "tv_chambolle", 5 : "richardson_lucy",
-                        6 : "inpainting", 7 : "ksvd" #, 8 : "bm3d"
+                        6 : "inpainting", 7 : "ksvd", 8 : "lee" #, 9 : "bm3d",
                         }
         self.method_nb = len(self.str2int)                 # How many denoising methods are available 
         self.Ilist = [None for i in range(self.method_nb)] # List of all available denoised images
@@ -67,6 +67,8 @@ class denoisedImage :
         self.ksvd_components = ksvd_components
         self.ksvd_patch = ksvd_patch
         self.Iksvd = np.empty(self.shape)
+        
+        self.Ilee = np.empty(self.shape)
         
         self.Iinpaint = np.empty(self.shape)
                
@@ -162,7 +164,22 @@ class denoisedImage :
         if self.verbose :
             print('K-SVD :', self.Iksvd)
         return()
-      
+
+    def lee(self):
+        """ Lee filter """
+        img_mean = scipy.ndimage.filters.uniform_filter(self.Inoisy, self.shape)
+        img_sqr_mean = scipy.ndimage.filters.uniform_filter(self.Inoisy**2, self.shape)
+        img_variance = img_sqr_mean - img_mean**2
+    
+        overall_variance = scipy.ndimage.measurements.variance(self.Inoisy)
+    
+        img_weights = img_variance / (img_variance + overall_variance)
+        self.Ilee = img_mean + img_weights * (self.Inoisy - img_mean)
+        self.Ilist[self.str2int['lee']] = self.Ilee
+        if self.verbose :
+            print('Lee filter :', self.Ilee)       
+        return()
+
     def inpaint(self):
         """Inpainting"""
         
@@ -190,6 +207,7 @@ class denoisedImage :
         self.inpaint()
         self.ksvd()
 #        self.bm3d()
+        self.lee()
         return()
     
     def show(self, I, title=''):
@@ -211,6 +229,7 @@ class denoisedImage :
          self.show(self.Iinpaint, "Inpainting")
          self.show(self.Iksvd,"K-SVD")
 #         self.show(self.Ibm3d, "BM3D")
+         self.show(self.Ilee,"Lee Filter")
          return()
             
 if (__name__ == "__main__"):
