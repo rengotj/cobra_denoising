@@ -133,7 +133,11 @@ class machine:
           elif self.name == 'ksvd' :
               denoise_class = denoise.denoisedImage(image_noisy)
               denoise_class.ksvd()
-              image_denoised = denoise_class.Iksvd       
+              image_denoised = denoise_class.Iksvd
+          elif self.name == 'lee' :
+              denoise_class = denoise.denoisedImage(image_noisy)
+              denoise_class.lee()
+              image_denoised = denoise_class.Ilee  
 #          elif self.name == 'bm3d' :
 #              denoise_class = denoise.denoisedImage(image_noisy)
 #              denoise_class.bm3d()
@@ -179,7 +183,8 @@ def define_cobra_model(train_names, training_noise_kind, patch_size=1, optimi=Tr
     cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
     cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
     cobra.load_machine('ksvd', machine('ksvd', 7, patch_size))
-#    cobra.load_machine('bm3d', machine('bm3d', 8, patch_size))
+    cobra.load_machine('ksvd', machine('lee', 8, patch_size))
+#    cobra.load_machine('bm3d', machine('bm3d', 9, patch_size))
 
     print("Loading machine predictions...")
     cobra.load_machine_predictions() #agregate
@@ -206,7 +211,8 @@ def define_cobra_model(train_names, training_noise_kind, patch_size=1, optimi=Tr
         cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
         cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
         cobra.load_machine('ksvd', machine('ksvd', 7, patch_size))
-#       cobra.load_machine('bm3d', machine('bm3d', 8, patch_size))
+        cobra.load_machine('ksvd', machine('lee', 8, patch_size))
+#       cobra.load_machine('bm3d', machine('bm3d', 9, patch_size))
         cobra.load_machine_predictions()
         if verbose :
             print("Loading machine predictions...")
@@ -297,4 +303,4 @@ if (__name__ == "__main__"):
 
     # Plot the results of the machines versus the actual answers (testing space).
     visualise = Visualisation(cobra_model, np.array(Xtest), np.array(Yreal))
-    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting', 'ksvd'])
+    visualise.plot_machines(['bilateral', 'nlmeans', 'gauss', 'median', 'TVchambolle', 'richardson_lucy', 'inpainting', 'ksvd', 'lee'])
