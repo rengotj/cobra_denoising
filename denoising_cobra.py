@@ -183,7 +183,7 @@ def define_cobra_model(train_names, training_noise_kind, patch_size=1, optimi=Tr
     cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
     cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
     cobra.load_machine('ksvd', machine('ksvd', 7, patch_size))
-    cobra.load_machine('ksvd', machine('lee', 8, patch_size))
+    cobra.load_machine('lee', machine('lee', 8, patch_size))
 #    cobra.load_machine('bm3d', machine('bm3d', 9, patch_size))
 
     print("Loading machine predictions...")
@@ -211,7 +211,7 @@ def define_cobra_model(train_names, training_noise_kind, patch_size=1, optimi=Tr
         cobra.load_machine('richardson_lucy', machine('richardson_lucy', 5, patch_size))
         cobra.load_machine('inpainting', machine('inpainting', 6, patch_size))
         cobra.load_machine('ksvd', machine('ksvd', 7, patch_size))
-        cobra.load_machine('ksvd', machine('lee', 8, patch_size))
+        cobra.load_machine('lee', machine('lee', 8, patch_size))
 #       cobra.load_machine('bm3d', machine('bm3d', 9, patch_size))
         cobra.load_machine_predictions()
         if verbose :
